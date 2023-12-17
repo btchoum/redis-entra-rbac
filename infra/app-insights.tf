@@ -12,6 +12,11 @@ resource "azurerm_application_insights" "demo" {
   resource_group_name           = azurerm_resource_group.rg.name
   workspace_id                  = azurerm_log_analytics_workspace.demo.id
   application_type              = "web"
-  local_authentication_disabled = true
+  local_authentication_disabled = false
 }
 
+# resource "azurerm_role_assignment" "webapp_appinsights" {
+#   scope                = azurerm_application_insights.demo.id
+#   role_definition_name = "Monitoring Metrics Publisher"
+#   principal_id         = azurerm_linux_web_app.demo.id
+# }
