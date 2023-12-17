@@ -14,7 +14,7 @@ internal class Program
 
         builder.Services.AddStackExchangeRedisCache(options =>
          {
-             options.Configuration = builder.Configuration.GetConnectionString("REDIS_CONNECTION_STRING");
+             options.Configuration = builder.Configuration.GetValue<string>("REDIS_CONNECTION_STRING");
              options.InstanceName = "SampleInstance";
          });
 
@@ -34,27 +34,31 @@ internal class Program
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
         };
 
-        app.MapGet("/api/weather", ([FromServices]IDistributedCache cache) =>
+        app.MapGet("/api/time", ([FromServices]IDistributedCache cache, [FromServices]ILogger<Program> logger) =>
         {
-            var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)],
-                    DateTime.UtcNow
-                ))
-                .ToArray();
-            return forecast;
+            var cacheKey = "CurrentUtcTime";
+
+            var data = cache.GetString(cacheKey);
+
+            if (string.IsNullOrEmpty(data))
+            {
+                logger.LogWarning("Cache Miss");
+                data = $"{DateTime.UtcNow:s}";
+                var options = new DistributedCacheEntryOptions
+                { 
+                    AbsoluteExpiration = DateTimeOffset.UtcNow.AddSeconds(30)
+                };
+                cache.SetString(cacheKey, data, options);
+            } else
+            {
+                logger.LogInformation("Cache Hit");
+            }
+
+            return new { currentTime = data };
         })
-        .WithName("GetWeatherForecast")
+        .WithName("GetCurrentTime")
         .WithOpenApi();
 
         app.Run();
     }
-}
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary, DateTime CurrentDate)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
