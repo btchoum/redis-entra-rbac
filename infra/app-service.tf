@@ -22,4 +22,10 @@ resource "azurerm_linux_web_app" "demo" {
       dotnet_version = "8.0"
     }
   }
+
+  app_settings = {
+    "APPINSIGHTS_INSTRUMENTATIONKEY"        = azurerm_application_insights.demo.instrumentation_key
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.demo.connection_string
+    "REDIS_CONNECTION_STRING"               = azurerm_redis_cache.example.primary_connection_string
+  }
 }
